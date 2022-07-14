@@ -22,17 +22,18 @@ import json
 import os, os.path
 import re
 from os import listdir
+import cupy as cp
 import numpy as np
-from numpy import zeros,array,setdiff1d,ndarray,arange
-from numpy import place,where,real,polyval
-from numpy import complex128,int64,float64,float32
-from numpy import sqrt,abs,exp,pi,log,sin,cos,tan
-from numpy import convolve
-from numpy import flipud
-from numpy.fft import fft,fftshift
-from numpy import linspace,floor
-from numpy import any,minimum,maximum
-from numpy import sort as npsort
+from cupy import zeros,array,arange
+from cupy import place,where,real,polyval
+from cupy import complex128,int64,float64,float32
+from cupy import sqrt,abs,exp,pi,log,sin,cos,tan
+from cupy import convolve
+from cupy import flipud
+from cupy.fft import fft,fftshift
+from cupy import linspace,floor
+from cupy import any,minimum,maximum
+from cupy import sort as npsort
 from bisect import bisect
 from warnings import warn,simplefilter
 from time import time
@@ -996,14 +997,14 @@ def getRowObjectFromString(input_string,TableName):
                 try:
                     par_value = int(par_value)
                 except ValueError:
-                    #par_value = 0
-                    par_value = np.nan
+                    par_value = 0
+                    par_value = cp.nan
             elif ty.lower() in set(['e','f']): # float value
                 try:
                     par_value = float(par_value)
                 except ValueError:
                     #par_value = 0.0
-                    par_value = np.nan
+                    par_value = cp.nan
             elif ty=='s': # string value
                 pass # don't strip string value
             else:
@@ -1175,7 +1176,7 @@ def storage2cache(TableName,cast=True,ext=None,nlines=None,pos=None):
         for qnt, col in zip(quantities, data_columns):
             #LOCAL_TABLE_CACHE[TableName]['data'][qnt].extend(col) # old code
             if type(col[0]) in {int,float}:
-                LOCAL_TABLE_CACHE[TableName]['data'][qnt] = np.array(col) # new code
+                LOCAL_TABLE_CACHE[TableName]['data'][qnt] = cp.array(col) # new code
             else:
                 LOCAL_TABLE_CACHE[TableName]['data'][qnt].extend(col) # old code
             #LOCAL_TABLE_CACHE[TableName]['data'][qnt] = list(col)
@@ -1189,7 +1190,7 @@ def storage2cache(TableName,cast=True,ext=None,nlines=None,pos=None):
         par_names += LOCAL_TABLE_CACHE[TableName]['header']['extra']
     for par_name in par_names:
         column = LOCAL_TABLE_CACHE[TableName]['data'][par_name]
-        LOCAL_TABLE_CACHE[TableName]['data'][par_name] = np.array(column)                    
+        LOCAL_TABLE_CACHE[TableName]['data'][par_name] = cp.array(column)                    
             
     # Additionally: convert numeric arrays in "extra" part of the LOCAL_TABLE_CACHE to masked arrays.
     # This is done to avoid "nan" values in the arithmetic operations involving these columns.
@@ -1200,7 +1201,7 @@ def storage2cache(TableName,cast=True,ext=None,nlines=None,pos=None):
             (lng,trail,lngpnt,ty) = re.search(regex,par_format).groups()
             if ty.lower() in ['d','e','f']:
                 column = LOCAL_TABLE_CACHE[TableName]['data'][par_name]
-                colmask = np.isnan(column)
+                colmask = cp.isnan(column)
                 LOCAL_TABLE_CACHE[TableName]['data'][par_name] = np.ma.array(column,mask=colmask)
     
     # Delete all character-separated values, treat them as column-fixed.
@@ -17153,7 +17154,7 @@ def BD_TIPS_2017_PYTHON_SLICE(M,I,T,n=20): # testing
     QQ = TIPS_2017_ISOQ_HASH[(M,I)]
     
     # slice temperature grid and partition sum
-    i_T = np.searchsorted(TT,T)
+    i_T = cp.searchsorted(TT,T)
     TT_ = TT[max(i_T-n,0):min(i_T+n,NT)]
     QQ_ = QQ[max(i_T-n,0):min(i_T+n,NT)]
     
@@ -33634,7 +33635,7 @@ def cpf(X,Y):
         zsum_REGION3 += zterm
     zsum_REGION3 *= zi*zm1*pipwoeronehalf
     
-    index_REGION12 = setdiff1d(array(arange(len(X))),array(index_REGION3))
+    index_REGION12 = cp.setdiff1d(array(arange(len(X))),array(index_REGION3))
     X_REGION12 = X[index_REGION12]
     Y_REGION12 = Y[index_REGION12]
     
@@ -33683,11 +33684,11 @@ def cpf(X,Y):
         WI_REGION2 = WI_REGION2 + U[I]*(D2_REGION2 + D4_REGION2) + S[I]*(D1_REGION2 - D3_REGION2)
 
     # REGION3
-    index_REGION1 = setdiff1d(array(index_REGION12),array(index_REGION2))
+    index_REGION1 = cp.setdiff1d(array(index_REGION12),array(index_REGION2))
     X_REGION1 = X[index_REGION1]
     Y_REGION1 = X[index_REGION1]
     
-    subindex_REGION1 = setdiff1d(array(arange(len(index_REGION12))),array(subindex_REGION2))
+    subindex_REGION1 = cp.setdiff1d(array(arange(len(index_REGION12))),array(subindex_REGION2))
     Y1_REGION1 = Y1_REGION12[subindex_REGION1]
     Y2_REGION1 = Y2_REGION12[subindex_REGION1]
     
